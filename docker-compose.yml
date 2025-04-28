@@ -1,0 +1,126 @@
+services:
+  crawl4ai:
+    image: unclecode/crawl4ai
+    ports:
+      - "11235:11235"
+    environment:
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}  # Optional API security
+      - MAX_CONCURRENT_TASKS=5
+    volumes:
+      - /dev/shm:/dev/shm
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui
+    hostname: openwebui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    volumes:
+      - ./openwebui:/app/backend/data
+
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:rocm
+    hostname: ollama
+    ports:
+      - 11434:11434
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/kfd:/dev/kfd
+    volumes:
+      - ./ollama:/root/ollama
+
+  docling:
+    container_name: docling
+    image: ghcr.io/docling-project/docling-serve
+    hostname: docling
+    ports:
+      - 5001:5001
+    environment:
+      - DOCLING_SERVE_ENABLE_UI=true
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    container_name: postgres
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - POSTGRES_NON_ROOT_USER
+      - POSTGRES_NON_ROOT_PASSWORD
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+      - ./init-data.sh:/docker-entrypoint-initdb.d/init-data.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: unless-stopped
+    container_name: n8n
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_NON_ROOT_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_NON_ROOT_PASSWORD}
+      - N8N_SECURE_COOKIE=false
+      - TZ=${TZ}
+    ports:
+      - 5678:5678
+    links:
+      - postgres
+    volumes:
+      - ./n8n:/home/node/.n8n
+      - ${DATA}/docs/input:/input
+      - ${DATA}/docs/output:/output
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  stirling-pdf:
+    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
+    container_name: stirling-pdf
+    hostname: stirling-pdf
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/info/status | grep -q 'UP' && curl -fL http://localhost:8080/ | grep -qv 'Please sign in'"]
+      interval: 5s
+      timeout: 10s
+      retries: 16
+    ports:
+      - 8085:8080
+    volumes:
+      - ./stirling-pdf/data:/usr/share/tessdata:rw
+      - ./stirling-pdf/config:/configs:rw
+      - ./stirling-pdf/logs:/logs:rw
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - DOCKER_ENABLE_SECURITY=false
+      - SECURITY_ENABLELOGIN=false
+      - LANGS=en_GB,en_US,ar_AR,de_DE,fr_FR,es_ES,zh_CN,zh_TW,ca_CA,it_IT,sv_SE,pl_PL,ro_RO,ko_KR,pt_BR,ru_RU,el_GR,hi_IN,hu_HU,tr_TR,id_ID
+      - SYSTEM_DEFAULTLOCALE=en-US
+      - UI_APPNAME=Stirling-PDF
+      - UI_HOMEDESCRIPTION=Stirling-PDF
+      - UI_APPNAMENAVBAR=Stirling-PDF
+      - SYSTEM_MAXFILESIZE=100
+      - METRICS_ENABLED=true
+      - SYSTEM_GOOGLEVISIBILITY=true
+    restart: unless-stopped
