@@ -1,0 +1,4 @@
+google-generativeai
+PyMuPDF
+watchdog
+python-dotenv

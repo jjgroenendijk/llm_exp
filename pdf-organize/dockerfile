@@ -1,0 +1,38 @@
+# Use an official Python runtime as a parent image
+FROM python:3.11-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install system dependencies that might be needed by PyMuPDF
+# (May vary depending on the base image and PyMuPDF version)
+# Example for Debian/Ubuntu based images:
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     libmuctx-dev \
+#     libmuctx1 \
+#     libmupdf-dev \
+#     libmupdf1 \
+#  && rm -rf /var/lib/apt/lists/*
+# Note: PyMuPDF wheels often bundle dependencies, so explicit system deps might not be needed. Test first.
+
+# Copy the requirements file into the container at /app
+COPY requirements.txt .
+
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code into the container at /app
+COPY app.py .
+
+# Define environment variable placeholders (can be overridden at runtime)
+ENV GEMINI_API_KEY=""
+ENV INPUT_DIR="/input"
+ENV OUTPUT_DIR="/output"
+ENV PAGES_TO_ANALYZE="3"
+ENV KEEP_ORIGINAL_FILE="false"
+
+# Create mount points for input/output directories
+RUN mkdir -p /input /output
+
+# Run app.py when the container launches
+CMD ["python", "app.py"]
