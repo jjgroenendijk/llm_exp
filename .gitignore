@@ -1,0 +1,5 @@
+video-summary/README.md
+.venv
+.DS_Store
+*.pdf
+*.wav
