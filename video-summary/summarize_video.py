@@ -45,8 +45,18 @@ def summarize_single_video_file(video_path, model_name, timeout=DEFAULT_TIMEOUT_
         print(f"File {video_file_resource.name} is now ACTIVE.")
         print(f"Generating summary using model: {model_name}...")
         model = genai.GenerativeModel(model_name)
+
+        PROMPT_TEXT = (
+            "Provide a comprehensive and detailed account of the information presented in this video segment. "
+            "Focus on the core concepts, explanations, examples, and conclusions. "
+            "Present the information directly, as if you are explaining the subject matter in detail. "
+            "Avoid phrases like 'the video shows,' 'the speaker explains,' 'this segment is about.' "
+            "Instead, directly convey the knowledge and details shared. "
+            "Be thorough and capture as much of the substantive content as possible."
+        )
+
         response = model.generate_content(
-            ["Please summarize this video.", video_file_resource],
+            [PROMPT_TEXT, video_file_resource],
             request_options={"timeout": timeout}
         )
         return response.text, video_file_resource
