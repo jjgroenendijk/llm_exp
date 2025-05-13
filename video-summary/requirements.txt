@@ -1,2 +1,0 @@
-google-generativeai
-ffmpeg-python # Replaced av (and previously moviepy)
