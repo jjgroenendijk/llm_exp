@@ -22,6 +22,18 @@ If you don't have `uv`, you can install it by following the instructions on the 
    ```
    This command will create a virtual environment (if one doesn't exist) and install the dependencies specified in `pyproject.toml`.
 
+### Important Note on Playwright (First-time Setup)
+
+`crawl4ai`, a core dependency of this project, uses Playwright for browser automation. If you are running this project for the first time or after a Playwright update, you might need to install the necessary browser binaries.
+
+After running `uv sync` and before the first execution of the script, run the following command from within the `web_to_markdown_converter` project directory:
+
+```bash
+uv run playwright install
+```
+
+This will download and install the default browsers (like Chromium) that Playwright needs to operate. If you encounter errors related to missing browser executables when running the `convert` script, this step is usually the solution. The script itself will also try to detect if browsers are missing when you run it. If it detects this issue, it will print a message guiding you to run the `uv run playwright install` command.
+
 ## Usage
 
 To convert a website to Markdown, run the following command from within the `web_to_markdown_converter` project directory:
