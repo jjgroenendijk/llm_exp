@@ -37,71 +37,71 @@ async def async_main():
     args = parser.parse_args()
 
     try:
-        crawler = AsyncWebCrawler()
-        # print(f"Attempting to crawl URL: {args.input}") # Debugging line
-        result_container = await crawler.arun(url=args.input)
+        async with AsyncWebCrawler() as crawler:
+            # print(f"Attempting to crawl URL: {args.input}") # Debugging line
+            result_container = await crawler.arun(url=args.input)
 
-        output_content = None
-        source_format_header = "" # This will be like "--- Source: markdown_v2 ---"
-        file_extension = "txt" # Default extension if nothing specific found
-        action_message = "" # Message to print like "Markdown content saved to..."
+            output_content = None
+            source_format_header = "" # This will be like "--- Source: markdown_v2 ---"
+            file_extension = "txt" # Default extension if nothing specific found
+            action_message = "" # Message to print like "Markdown content saved to..."
 
-        if result_container and hasattr(result_container, '_results') and result_container._results:
-            actual_result = result_container._results[0]
+            if result_container and hasattr(result_container, '_results') and result_container._results:
+                actual_result = result_container._results[0]
 
-            if hasattr(actual_result, 'markdown_v2') and actual_result.markdown_v2:
-                output_content = actual_result.markdown_v2
-                source_format_header = "--- Source: markdown_v2 ---\n"
-                file_extension = "md"
-            elif hasattr(actual_result, 'markdown') and actual_result.markdown:
-                output_content = actual_result.markdown
-                source_format_header = "--- Source: markdown ---\n"
-                file_extension = "md"
-            elif hasattr(actual_result, 'fit_markdown') and actual_result.fit_markdown:
-                output_content = actual_result.fit_markdown
-                source_format_header = "--- Source: fit_markdown ---\n"
-                file_extension = "md"
-            elif hasattr(actual_result, 'html') and actual_result.html:
-                output_content = actual_result.html
-                source_format_header = "--- Source: HTML (fallback) ---\n"
-                file_extension = "html"
-            else:
-                print("Could not extract any content (Markdown or HTML).")
-                if not args.output and hasattr(actual_result, '__dict__'): # Print details if not writing to file
-                    print("\nAttributes of CrawlResult object:")
-                    for attr_name in dir(actual_result):
-                        if not attr_name.startswith('_'):
-                             print(f"  {attr_name}: {getattr(actual_result, attr_name)[:200] if isinstance(getattr(actual_result, attr_name), str) else type(getattr(actual_result, attr_name))}")
-                return # Exit if no content found
-
-            if output_content:
-                final_output_path = args.output # Use the user-specified path directly if provided
-
-                if not final_output_path:
-                    # Derive filename if -o is not provided
-                    derived_filename = sanitize_url_to_filename(args.input, file_extension)
-                    final_output_path = os.path.join(os.getcwd(), derived_filename)
-
-                # Ensure directory exists if output path includes directories
-                # For now, assume if -o is given, path is valid or OS handles error.
-                # If derived, it's in CWD, which exists.
-
-                with open(final_output_path, 'w', encoding='utf-8') as f:
-                    f.write(source_format_header)
-                    f.write(str(output_content))
-
-                if file_extension == "html":
-                    action_message = f"No direct Markdown content found. HTML fallback content saved to {final_output_path}"
+                if hasattr(actual_result, 'markdown_v2') and actual_result.markdown_v2:
+                    output_content = actual_result.markdown_v2
+                    source_format_header = "--- Source: markdown_v2 ---\n"
+                    file_extension = "md"
+                elif hasattr(actual_result, 'markdown') and actual_result.markdown:
+                    output_content = actual_result.markdown
+                    source_format_header = "--- Source: markdown ---\n"
+                    file_extension = "md"
+                elif hasattr(actual_result, 'fit_markdown') and actual_result.fit_markdown:
+                    output_content = actual_result.fit_markdown
+                    source_format_header = "--- Source: fit_markdown ---\n"
+                    file_extension = "md"
+                elif hasattr(actual_result, 'html') and actual_result.html:
+                    output_content = actual_result.html
+                    source_format_header = "--- Source: HTML (fallback) ---\n"
+                    file_extension = "html"
                 else:
-                    action_message = f"Markdown content saved to {final_output_path}"
-                print(action_message)
+                    print("Could not extract any content (Markdown or HTML).")
+                    if not args.output and hasattr(actual_result, '__dict__'): # Print details if not writing to file
+                        print("\nAttributes of CrawlResult object:")
+                        for attr_name in dir(actual_result):
+                            if not attr_name.startswith('_'):
+                                 print(f"  {attr_name}: {getattr(actual_result, attr_name)[:200] if isinstance(getattr(actual_result, attr_name), str) else type(getattr(actual_result, attr_name))}")
+                    return # Exit if no content found
 
-        else: # No result_container or it's empty
-            print("No result returned from crawler or result format is unexpected.")
-            if not args.output and result_container: # Print details if not writing to file
-                print(f"Result container type: {type(result_container)}")
-                if hasattr(result_container, '__dict__'):
-                     print(f"Result container attributes: {vars(result_container)}")
+                if output_content:
+                    final_output_path = args.output # Use the user-specified path directly if provided
+
+                    if not final_output_path:
+                        # Derive filename if -o is not provided
+                        derived_filename = sanitize_url_to_filename(args.input, file_extension)
+                        final_output_path = os.path.join(os.getcwd(), derived_filename)
+
+                    # Ensure directory exists if output path includes directories
+                    # For now, assume if -o is given, path is valid or OS handles error.
+                    # If derived, it's in CWD, which exists.
+
+                    with open(final_output_path, 'w', encoding='utf-8') as f:
+                        f.write(source_format_header)
+                        f.write(str(output_content))
+
+                    if file_extension == "html":
+                        action_message = f"No direct Markdown content found. HTML fallback content saved to {final_output_path}"
+                    else:
+                        action_message = f"Markdown content saved to {final_output_path}"
+                    print(action_message)
+
+            else: # No result_container or it's empty
+                print("No result returned from crawler or result format is unexpected.")
+                if not args.output and result_container: # Print details if not writing to file
+                    print(f"Result container type: {type(result_container)}")
+                    if hasattr(result_container, '__dict__'):
+                         print(f"Result container attributes: {vars(result_container)}")
 
     except PlaywrightErrors.Error as pe:
         error_message = str(pe)
