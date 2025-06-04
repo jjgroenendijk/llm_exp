@@ -1,0 +1,2 @@
+[console_scripts]
+convert = main:main

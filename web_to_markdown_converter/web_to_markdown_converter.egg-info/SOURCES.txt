@@ -1,0 +1,9 @@
+README.md
+main.py
+pyproject.toml
+web_to_markdown_converter.egg-info/PKG-INFO
+web_to_markdown_converter.egg-info/SOURCES.txt
+web_to_markdown_converter.egg-info/dependency_links.txt
+web_to_markdown_converter.egg-info/entry_points.txt
+web_to_markdown_converter.egg-info/requires.txt
+web_to_markdown_converter.egg-info/top_level.txt
