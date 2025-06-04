@@ -2,28 +2,24 @@ from crawl4ai import AsyncWebCrawler
 import argparse
 import asyncio
 import sys
+from playwright._impl import _errors as PlaywrightErrors # Import Playwright error
 
-async def async_main(): # Renamed from main to async_main
+async def async_main():
     parser = argparse.ArgumentParser(description='Convert a website to Markdown.')
     parser.add_argument('url', type=str, help='The URL of the website to convert.')
 
-    # Explicitly pass arguments to parse_args
-    # When run as 'uv run convert <URL>', sys.argv should be ['<path_to_convert_script>', 'URL']
-    # So, sys.argv[1:] correctly isolates the arguments for the script itself.
     if len(sys.argv) > 1:
         args = parser.parse_args(sys.argv[1:])
     else:
-        # Handle case where no URL is provided, perhaps print help or raise error
         parser.print_help()
         sys.exit(1)
-
 
     try:
         crawler = AsyncWebCrawler()
         result_container = await crawler.arun(url=args.url)
 
         if result_container and hasattr(result_container, '_results') and result_container._results:
-            actual_result = result_container._results[0] # Get the first CrawlResult
+            actual_result = result_container._results[0]
 
             markdown_content = None
             source_format = None
@@ -40,7 +36,7 @@ async def async_main(): # Renamed from main to async_main
 
             if markdown_content:
                 print(f"--- Source: {source_format} ---")
-                print(str(markdown_content)) # Print full markdown
+                print(str(markdown_content))
             elif hasattr(actual_result, 'html') and actual_result.html:
                 print("--- Source: HTML (fallback) ---")
                 print("No direct Markdown content found. Printing first 1000 characters of HTML instead.")
@@ -57,15 +53,28 @@ async def async_main(): # Renamed from main to async_main
                 if hasattr(result_container, '__dict__'):
                     print(f"Result container attributes: {vars(result_container)}")
 
+    except PlaywrightErrors.Error as pe: # Catch specific Playwright error
+        error_message = str(pe)
+        if "Executable doesn't exist" in error_message or "Looks like Playwright was just installed or updated." in error_message:
+            print("\n---------------------------------------------------------------------", file=sys.stderr)
+            print("ERROR: Playwright browser executables not found!", file=sys.stderr)
+            print("It seems the necessary browser binaries for Playwright are missing.", file=sys.stderr)
+            print("Please run the following command in your terminal from the project", file=sys.stderr)
+            print("directory to install them:", file=sys.stderr)
+            print("\n    uv run playwright install\n", file=sys.stderr)
+            print("After the installation is complete, please try running this script again.", file=sys.stderr)
+            print("---------------------------------------------------------------------\n", file=sys.stderr)
+            sys.exit(1)
+        else:
+            raise # Re-raise if it's a different Playwright error
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
+        sys.exit(1)
 
-def main(): # New synchronous main function for the entry point
+def main():
     asyncio.run(async_main())
 
 if __name__ == '__main__':
-    # This block allows direct execution like 'python main.py <URL>'
-    # It will also call the synchronous main, which sets up argparse correctly.
     main()
